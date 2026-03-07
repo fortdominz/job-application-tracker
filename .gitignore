@@ -1,0 +1,9 @@
+# Personal data - don't upload this
+applications.json
+
+# Python cache files - not needed on GitHub
+__pycache__/
+*.pyc
+
+# Mac system file - not relevant
+.DS_Store
