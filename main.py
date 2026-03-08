@@ -137,43 +137,49 @@ def screen_view_all():
 
 def screen_add_application():
     ui.print_header("Add New Application")
-    print(ui.colorize("dim", "  Fill in the details below. Just press Enter to skip optional fields.\n"))
+    print(ui.colorize("dim", "  Fill in the details below. Press Enter to skip optional fields. Type 0 at any picker to cancel.\n"))
 
+    # Required fields — ask_required() keeps re-asking until something is typed
+    company = ui.ask_required("Company name (required)")
+
+    # Job type comes right after company — both describe what the job is
+    # 0 or q cancels the whole add session and goes back to the menu
+    print()
+    job_type = ui.pick_job_type(allow_cancel=True)
+
+    if job_type is None:
+        print()
+        print(ui.colorize("dim", "  Add cancelled. No application was saved."))
+        ui.wait_for_enter()
+        return
+
+    print()
+    role = ui.ask_required("Role / Job title (required)")
+
+    # Optional text fields — plain ask() is fine, blank is allowed
+    location = ui.ask("Location  (e.g. Remote, New York NY)")
+    source   = ui.ask("Where did you find it?  (e.g. LinkedIn, Handshake)")
+    salary   = ui.ask("Salary or stipend  (e.g. $8,000/month)")
+    notes    = ui.ask("Any notes?  (contacts, links, thoughts)")
+
+    # Date fields — ask_date() keeps re-asking until format is right or left blank
+    deadline     = ui.ask_date("Application deadline")
+    date_applied = ui.ask_date("Date you applied")
+
+    # Status picker — same rule, 0 or q exits the whole session
+    print()
+    status = ui.pick_status(allow_cancel=True)
+
+    if status is None:
+        print()
+        print(ui.colorize("dim", "  Add cancelled. No application was saved."))
+        ui.wait_for_enter()
+        return
+
+    # All inputs validated field by field above — this should not raise
+    # but we keep the try/except as a safety net just in case
     try:
-        # Collect information from the user
-        company      = ui.ask("Company name (required)")
-        role         = ui.ask("Role / Job title (required)")
-        location     = ui.ask("Location  (e.g. Remote, New York NY)")
-        source       = ui.ask("Where did you find it?  (e.g. LinkedIn, Handshake)")
-        deadline     = ui.ask("Application deadline  (YYYY-MM-DD)")
-        date_applied = ui.ask("Date you applied  (YYYY-MM-DD)")
-        salary       = ui.ask("Salary or stipend  (e.g. $8,000/month)")
-        notes        = ui.ask("Any notes?  (contacts, links, thoughts)")
-
-        # Let them pick a job type
-        # 0 or q cancels the whole add session and goes back to the menu
-        # Pressing Enter with no input keeps asking - handled inside pick_from_list()
-        print()
-        job_type = ui.pick_from_list("Pick a job type (required):", JOB_TYPES, allow_cancel=True)
-
-        if job_type is None:
-            print()
-            print(ui.colorize("dim", "  Add cancelled. No application was saved."))
-            ui.wait_for_enter()
-            return
-
-        # Let them pick a status - same rule, 0 or q exits the whole session
-        print()
-        status = ui.pick_status(allow_cancel=True)
-
-        if status is None:
-            print()
-            print(ui.colorize("dim", "  Add cancelled. No application was saved."))
-            ui.wait_for_enter()
-            return
-
-        # Build the application and validate the inputs
-        new_app = create_application(
+        new_app   = create_application(
             company      = company,
             role         = role,
             location     = location,
@@ -185,17 +191,14 @@ def screen_add_application():
             salary       = salary,
             notes        = notes,
         )
-
-        # Save it to the database
         saved_app = db.add_application(new_app)
-
         print()
-        print(ui.colorize("green", "  ✓ Application saved! (ID: " + str(saved_app["id"]) + ")"))
+        print(ui.colorize("green", "  ✓ Application saved!  (ID: " + str(saved_app["id"]) + ")"))
 
     except ValueError as error:
-        # Something the user typed wasn't valid - show the error message
+        # Safety net — should not normally reach here after field-level validation
         print()
-        print(ui.colorize("red", "  ✗ Oops: " + str(error)))
+        print(ui.colorize("red", "  ✗ Could not save: " + str(error)))
 
     ui.wait_for_enter()
 
@@ -231,16 +234,36 @@ def screen_update_application(prefill_id=None):
     print(ui.colorize("bold", "\n  Editing: " + app["company"] + " — " + app["role"]))
     print(ui.colorize("dim",  "  Press Enter to keep the current value shown in brackets.\n"))
 
-    # Collect the updated text fields
+    # Required fields — if blank entered, keep original and warn
+    new_company = ui.ask("Company", app["company"])
+    if new_company.strip() == "":
+        print(ui.colorize("yellow", "  Company name can't be blank — keeping current value."))
+        new_company = app["company"]
+
+    new_role = ui.ask("Role", app["role"])
+    if new_role.strip() == "":
+        print(ui.colorize("yellow", "  Role can't be blank — keeping current value."))
+        new_role = app["role"]
+
+    # Optional text fields — blank clears the field
+    new_location = ui.ask("Location",   app.get("location", ""))
+    new_source   = ui.ask("Source",     app.get("source", ""))
+    new_salary   = ui.ask("Salary",     app.get("salary", ""))
+    new_notes    = ui.ask("Notes",      app.get("notes", ""))
+
+    # Date fields — validate format, keep original if just Enter pressed
+    new_deadline     = ui.ask_date_update("Deadline",     app.get("deadline", ""))
+    new_date_applied = ui.ask_date_update("Date applied", app.get("date_applied", ""))
+
     updated_fields = {
-        "company":      ui.ask("Company",        app["company"]),
-        "role":         ui.ask("Role",            app["role"]),
-        "location":     ui.ask("Location",        app["location"]),
-        "source":       ui.ask("Source",          app["source"]),
-        "deadline":     ui.ask("Deadline",        app["deadline"]),
-        "date_applied": ui.ask("Date applied",    app["date_applied"]),
-        "salary":       ui.ask("Salary",          app["salary"]),
-        "notes":        ui.ask("Notes",           app["notes"]),
+        "company":      new_company,
+        "role":         new_role,
+        "location":     new_location,
+        "source":       new_source,
+        "deadline":     new_deadline,
+        "date_applied": new_date_applied,
+        "salary":       new_salary,
+        "notes":        new_notes,
     }
 
     # Handle job type separately using the picker (not a free-text field)
@@ -250,7 +273,7 @@ def screen_update_application(prefill_id=None):
     change_job_type = input("  Do you want to update the job type? (y/n): ").strip().lower()
 
     if change_job_type == "y":
-        chosen_job_type = ui.pick_from_list("Pick a job type:", JOB_TYPES)
+        chosen_job_type = ui.pick_job_type(allow_cancel=True)
         if chosen_job_type is None:
             print(ui.colorize("dim", "  Job type update cancelled. Keeping current value."))
             updated_fields["job_type"] = current_job_type

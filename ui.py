@@ -319,3 +319,120 @@ def print_application_detail(app):
 
     print()
     print_divider("─")
+
+
+# ── Smart Input Helpers ───────────────────────────────────────────────────────
+# These replace the basic ask() call for fields that need validation.
+# Instead of crashing the whole form on bad input, they re-ask just that field.
+
+def ask_required(question):
+    # Keeps asking until the user types something that isn't blank or just spaces.
+    # Used for company name and role — the two fields that cannot be empty.
+    while True:
+        answer = input("  " + question + ": ").strip()
+
+        if answer != "":
+            return answer
+
+        # If they pressed Enter with nothing, nudge them with a specific message
+        print(colorize("red", "  This field is required — please enter a value."))
+
+
+def ask_date(question):
+    # Keeps asking until the user either leaves it blank (optional) or types a valid date.
+    # A valid date must be in YYYY-MM-DD format, e.g. 2026-06-01.
+    from datetime import datetime
+
+    while True:
+        answer = input("  " + question + "  (YYYY-MM-DD, or Enter to skip): ").strip()
+
+        # Blank is fine — date fields are optional
+        if answer == "":
+            return ""
+
+        # Check the format before accepting it
+        try:
+            datetime.strptime(answer, "%Y-%m-%d")
+            return answer
+        except ValueError:
+            # Tell them exactly what went wrong and show a correct example
+            print(colorize("red", "  That date format isn't right. Use YYYY-MM-DD — for example: 2026-06-01"))
+
+
+def ask_date_update(question, current_value):
+    # Used on the update screen for date fields.
+    # Pressing Enter keeps the current value (same as all other update fields).
+    # Typing a new value validates the format before accepting it.
+    from datetime import datetime
+
+    while True:
+        answer = input("  " + question + " [" + colorize("dim", current_value or "none") + "]: ").strip()
+
+        # Blank means keep the current value — same as all other update fields
+        if answer == "":
+            return current_value if current_value else ""
+
+        # Validate the format before accepting the new value
+        try:
+            datetime.strptime(answer, "%Y-%m-%d")
+            return answer
+        except ValueError:
+            print(colorize("red", "  That date format isn't right. Use YYYY-MM-DD — for example: 2026-06-01"))
+
+
+def pick_job_type(allow_cancel=True):
+    # Shows the standard job type list plus an "Other" option at the end.
+    # If the user picks Other, they can type in their own job type.
+    # This keeps the list clean while not locking anyone out of edge cases.
+
+    from models import JOB_TYPES
+
+    print(colorize("bold", "  Pick a job type (required):"))
+    print()
+
+    # Print the standard options
+    for index, job_type in enumerate(JOB_TYPES, start=1):
+        print("  " + colorize("cyan", str(index) + ".") + "  " + job_type)
+
+    # Other is always the next number after the list
+    other_number = len(JOB_TYPES) + 1
+    print("  " + colorize("cyan", str(other_number) + ".") + "  Other (type your own)")
+
+    if allow_cancel:
+        print("  " + colorize("dim", "0.  Cancel"))
+        prompt_text = "  Enter a number (or 0 to cancel): "
+    else:
+        prompt_text = "  Enter a number: "
+
+    print()
+
+    while True:
+        choice = input(prompt_text).strip().lower()
+
+        # Blank Enter — re-prompt silently
+        if choice == "":
+            continue
+
+        # Cancel if allowed
+        if allow_cancel and (choice == "0" or choice == "q"):
+            return None
+
+        if choice.isdigit():
+            choice_number = int(choice)
+
+            # Picked one of the standard options
+            if 1 <= choice_number <= len(JOB_TYPES):
+                return JOB_TYPES[choice_number - 1]
+
+            # Picked "Other" — ask them to type their own
+            if choice_number == other_number:
+                while True:
+                    custom = input("  Enter your job type: ").strip()
+                    if custom != "":
+                        return custom
+                    print(colorize("red", "  Please enter a job type."))
+
+        if allow_cancel:
+            print(colorize("red", "  Please enter a number between 1 and " + str(other_number) + ", or 0 to cancel."))
+        else:
+            print(colorize("red", "  Please enter a number between 1 and " + str(other_number) + "."))

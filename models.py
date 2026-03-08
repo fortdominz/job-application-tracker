@@ -49,9 +49,10 @@ def create_application(company, role, location, source,
     if status not in STATUSES:
         raise ValueError(f"'{status}' is not a valid status. Choose from: {', '.join(STATUSES)}")
 
-    # Make sure the job type is one of the allowed values
-    if job_type not in JOB_TYPES:
-        raise ValueError(f"'{job_type}' is not a valid job type. Choose from: {', '.join(JOB_TYPES)}")
+    # Job type can be one of the standard options OR a custom value the user typed in
+    # We just make sure it isn't blank
+    if not job_type or job_type.strip() == "":
+        raise ValueError("Job type cannot be empty.")
 
     # If dates were provided, make sure they're in the right format
     if date_applied:
