@@ -88,7 +88,49 @@ def screen_view_all():
     all_apps = db.get_all_applications()
     ui.print_applications_table(all_apps)
 
-    ui.wait_for_enter()
+    # After showing the table, let the user open one application in full detail
+    # or just press Enter to go back to the menu
+    print(ui.colorize("dim", "  Enter an ID to view full details, or press Enter to go back."))
+    choice = input("  > ").strip()
+
+    # If they just pressed Enter, go back
+    if choice == "":
+        return
+
+    # If they typed an ID, try to find and show that application
+    if choice.isdigit():
+        app = db.get_application_by_id(int(choice))
+
+        if app is None:
+            print()
+            print(ui.colorize("red", "  No application found with ID " + choice + "."))
+            ui.wait_for_enter()
+            return
+
+        # Show the full detail view
+        ui.print_header("Application Detail")
+        ui.print_application_detail(app)
+
+        # After viewing, give them quick actions without going all the way back to the menu
+        print(ui.colorize("bold", "  What would you like to do?"))
+        print()
+        print("  " + ui.colorize("cyan", "[u]") + "  Update this application")
+        print("  " + ui.colorize("cyan", "[d]") + "  Delete this application")
+        print("  " + ui.colorize("cyan", "[b]") + "  Back to all applications")
+        print()
+
+        action = input("  Your choice: ").strip().lower()
+
+        if action == "u":
+            screen_update_application(prefill_id=app["id"])
+        elif action == "d":
+            screen_delete_application(prefill_id=app["id"])
+        # anything else (including "b") just returns to the menu
+
+    else:
+        print()
+        print(ui.colorize("red", "  Please enter a valid ID number."))
+        ui.wait_for_enter()
 
 
 # ── Screen: Add Application ───────────────────────────────────────────────────
@@ -108,18 +150,27 @@ def screen_add_application():
         salary       = ui.ask("Salary or stipend  (e.g. $8,000/month)")
         notes        = ui.ask("Any notes?  (contacts, links, thoughts)")
 
-        # Let them pick a job type - this is required, so keep asking until they pick one
-        # 0 and q are disabled here because you can't create an application without a job type
+        # Let them pick a job type
+        # 0 or q cancels the whole add session and goes back to the menu
+        # Pressing Enter with no input keeps asking - handled inside pick_from_list()
         print()
-        job_type = None
-        while job_type is None:
-            job_type = ui.pick_from_list("Pick a job type (required):", JOB_TYPES, allow_cancel=False)
+        job_type = ui.pick_from_list("Pick a job type (required):", JOB_TYPES, allow_cancel=True)
 
-        # Let them pick a status - also required, so same rule applies
+        if job_type is None:
+            print()
+            print(ui.colorize("dim", "  Add cancelled. No application was saved."))
+            ui.wait_for_enter()
+            return
+
+        # Let them pick a status - same rule, 0 or q exits the whole session
         print()
-        status = None
-        while status is None:
-            status = ui.pick_status(allow_cancel=False)
+        status = ui.pick_status(allow_cancel=True)
+
+        if status is None:
+            print()
+            print(ui.colorize("dim", "  Add cancelled. No application was saved."))
+            ui.wait_for_enter()
+            return
 
         # Build the application and validate the inputs
         new_app = create_application(
@@ -151,20 +202,23 @@ def screen_add_application():
 
 # ── Screen: Update Application ────────────────────────────────────────────────
 
-def screen_update_application():
+def screen_update_application(prefill_id=None):
     ui.print_header("Update Application")
 
-    # First, show the table so they can see the IDs
-    all_apps = db.get_all_applications()
-    ui.print_applications_table(all_apps)
+    # If we came from the detail view, we already know the ID — skip the table
+    if prefill_id is None:
+        all_apps = db.get_all_applications()
+        ui.print_applications_table(all_apps)
 
-    # Ask which application to update
-    try:
-        app_id = int(ui.ask("Enter the ID of the application to update"))
-    except ValueError:
-        print(ui.colorize("red", "  That\'s not a valid ID number."))
-        ui.wait_for_enter()
-        return
+        try:
+            app_id = int(ui.ask("Enter the ID of the application to update"))
+        except ValueError:
+            print(ui.colorize("red", "  That\'s not a valid ID number."))
+            ui.wait_for_enter()
+            return
+    else:
+        # ID was passed in directly from the detail view
+        app_id = prefill_id
 
     # Look up the application
     app = db.get_application_by_id(app_id)
@@ -248,20 +302,23 @@ def screen_update_application():
 
 # ── Screen: Delete Application ────────────────────────────────────────────────
 
-def screen_delete_application():
+def screen_delete_application(prefill_id=None):
     ui.print_header("Delete Application")
 
-    # Show the table so they can see the IDs
-    all_apps = db.get_all_applications()
-    ui.print_applications_table(all_apps)
+    # If we came from the detail view, we already know the ID — skip the table
+    if prefill_id is None:
+        all_apps = db.get_all_applications()
+        ui.print_applications_table(all_apps)
 
-    # Ask which one to delete
-    try:
-        app_id = int(ui.ask("Enter the ID of the application to delete"))
-    except ValueError:
-        print(ui.colorize("red", "  That's not a valid ID number."))
-        ui.wait_for_enter()
-        return
+        try:
+            app_id = int(ui.ask("Enter the ID of the application to delete"))
+        except ValueError:
+            print(ui.colorize("red", "  That's not a valid ID number."))
+            ui.wait_for_enter()
+            return
+    else:
+        # ID was passed in directly from the detail view
+        app_id = prefill_id
 
     # Make sure the application exists
     app = db.get_application_by_id(app_id)

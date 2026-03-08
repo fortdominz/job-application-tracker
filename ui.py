@@ -205,7 +205,11 @@ def pick_from_list(title, options, allow_cancel=True):
     while True:
         choice = input(prompt_text).strip().lower()
 
-        # Only allow cancel if it's permitted
+        # Blank Enter — just re-show the prompt silently, no error message needed
+        if choice == "":
+            continue
+
+        # 0 or q — cancel if allowed
         if allow_cancel and (choice == "0" or choice == "q"):
             return None
 
@@ -214,6 +218,7 @@ def pick_from_list(title, options, allow_cancel=True):
             if 1 <= choice_number <= len(options):
                 return options[choice_number - 1]
 
+        # Only show the error for actual invalid input, not for blank Enter
         if allow_cancel:
             print(colorize("red", "  Please enter a number between 1 and " + str(len(options)) + ", or 0 to cancel."))
         else:
@@ -250,7 +255,11 @@ def pick_status(current_status=None, allow_cancel=True):
     while True:
         choice = input(prompt_text).strip().lower()
 
-        # Only allow cancel if it's permitted
+        # Blank Enter — re-show the prompt silently, no error message needed
+        if choice == "":
+            continue
+
+        # 0 or q — cancel if allowed
         if allow_cancel and (choice == "0" or choice == "q"):
             return None
 
@@ -259,7 +268,54 @@ def pick_status(current_status=None, allow_cancel=True):
             if 1 <= choice_number <= len(STATUSES):
                 return STATUSES[choice_number - 1]
 
+        # Only show the error for actual invalid input, not for blank Enter
         if allow_cancel:
             print(colorize("red", "  Please enter a number between 1 and " + str(len(STATUSES)) + ", or 0 to cancel."))
         else:
             print(colorize("red", "  Please enter a number between 1 and " + str(len(STATUSES)) + "."))
+
+
+# ── Application Detail View ───────────────────────────────────────────────────
+
+def print_application_detail(app):
+    # Prints every field of a single application in a clean, readable layout.
+    # This is the "expanded" view — the full picture of one application.
+
+    print_divider("─")
+
+    # Title line — company and role front and center
+    print(colorize("bold", "  " + app.get("company", "") + "  —  " + app.get("role", "")))
+    print_divider("─")
+    print()
+
+    # Helper to print one labeled row
+    # We pad the label so all the values line up in a clean column
+    label_width = 14
+
+    def detail_row(label, value):
+        # If there's no value, show a dim dash so the row doesn't just look empty
+        if not value or value.strip() == "":
+            display_value = colorize("dim", "—")
+        else:
+            display_value = value
+        print("  " + colorize("dim", label.ljust(label_width)) + display_value)
+
+    # Print each field
+    detail_row("Status",       colorize_status(app.get("status", "")))
+    detail_row("Job Type",     app.get("job_type", ""))
+    print()
+    detail_row("Location",     app.get("location", ""))
+    detail_row("Source",       app.get("source", ""))
+    print()
+    detail_row("Deadline",     get_deadline_badge(app.get("deadline", "")))
+    detail_row("Date Applied", app.get("date_applied", ""))
+    detail_row("Salary",       app.get("salary", ""))
+    print()
+    detail_row("Notes",        app.get("notes", ""))
+    print()
+    detail_row("ID",           str(app.get("id", "")))
+    detail_row("Created",      app.get("date_created", "")[:10])   # just the date, not the time
+    detail_row("Last Updated", app.get("last_updated", "")[:10])
+
+    print()
+    print_divider("─")
