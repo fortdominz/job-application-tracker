@@ -175,3 +175,39 @@ def sort_applications(applications, sort_by):
 
     # If an unrecognised sort_by value was passed, return as-is
     return applications
+
+
+# ── Keyword Search ────────────────────────────────────────────────────────────
+
+def search_applications(keyword):
+    # Searches across every text field of every application.
+    # Returns any application where the keyword appears anywhere — case-insensitive.
+    # For example, searching "google" would match:
+    #   - company: "Google"
+    #   - notes: "Referred by someone at Google"
+    #   - source: "Google Jobs"
+
+    if not keyword or keyword.strip() == "":
+        return []
+
+    keyword_lower = keyword.strip().lower()
+
+    # These are all the fields we search through
+    searchable_fields = [
+        "company", "role", "job_type", "location",
+        "source", "status", "salary", "notes",
+        "deadline", "date_applied",
+    ]
+
+    matches = []
+
+    for app in load_applications():
+        # Check every searchable field to see if the keyword appears in it
+        for field in searchable_fields:
+            field_value = str(app.get(field, "")).lower()
+
+            if keyword_lower in field_value:
+                matches.append(app)
+                break  # No need to check more fields once we find a match
+
+    return matches

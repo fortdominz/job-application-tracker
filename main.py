@@ -396,33 +396,34 @@ def screen_delete_application(prefill_id=None):
 def screen_filter_and_search():
     ui.print_header("Filter & Search")
 
-    ui.print_menu("Filter by:", [
-        ("1", "Status"),
-        ("2", "Company name"),
+    ui.print_menu("Options:", [
+        ("1", "Filter by status"),
+        ("2", "Filter by company name"),
         ("3", "Deadlines in the next 7 days"),
+        ("4", "Keyword search  (searches all fields)"),
         ("b", "Back to main menu"),
     ])
 
     choice = input("  Your choice: ").strip().lower()
 
     if choice == "1":
-        # Let them pick a status and show matching applications
         selected_status = ui.pick_status()
-
-        # If they cancelled, go back without showing anything
         if selected_status is None:
             return
-
         results = db.filter_applications(status=selected_status)
         ui.print_header("Results: " + selected_status)
+        print(ui.colorize("dim", "  " + str(len(results)) + " application(s) found.\n"))
         ui.print_applications_table(results)
 
     elif choice == "2":
-        # Search by company name keyword
-        keyword = ui.ask("Enter a company name to search for")
+        keyword = ui.ask("Enter a company name to filter by")
+        if keyword.strip() == "":
+            print(ui.colorize("red", "  Please enter a company name."))
+            ui.wait_for_enter()
+            return
         results = db.filter_applications(company=keyword)
-
-        ui.print_header("Results for: '" + keyword + "'")
+        ui.print_header("Company filter: '" + keyword + "'")
+        print(ui.colorize("dim", "  " + str(len(results)) + " application(s) found.\n"))
         ui.print_applications_table(results)
 
     elif choice == "3":
@@ -447,10 +448,30 @@ def screen_filter_and_search():
                 continue
 
         ui.print_header("Deadlines in the Next 7 Days")
+        print(ui.colorize("dim", "  " + str(len(results)) + " application(s) found.\n"))
         ui.print_applications_table(results)
 
+    elif choice == "4":
+        # Keyword search — searches every field of every application
+        print()
+        keyword = input("  Search all fields: ").strip()
+
+        if keyword == "":
+            print(ui.colorize("red", "  Please enter a search term."))
+            ui.wait_for_enter()
+            return
+
+        results = db.search_applications(keyword)
+        ui.print_header("Search results: '" + keyword + "'")
+
+        if len(results) == 0:
+            print(ui.colorize("dim", "  No applications matched '" + keyword + "'."))
+        else:
+            print(ui.colorize("dim", "  " + str(len(results)) + " application(s) found.\n"))
+            ui.print_applications_table(results)
+
     elif choice == "b":
-        return  # Go back to the main menu
+        return
 
     ui.wait_for_enter()
 
