@@ -80,20 +80,46 @@ def show_main_menu():
     return choice
 
 
+# ── Sort State ────────────────────────────────────────────────────────────────
+# This remembers the chosen sort order for the whole session.
+# It lives here in main.py so it persists across multiple visits to the view screen
+# without needing to be stored in the database or a file.
+current_sort = "id"
+
+
 # ── Screen: View All ─────────────────────────────────────────────────────────
 
 def screen_view_all():
+    global current_sort  # we read and write the session sort state
+
+    # Get the sort label to show in the header so the user knows what's active
+    sort_label = next((label for key, label in ui.SORT_OPTIONS if key == current_sort), "Date added")
+
     ui.print_header("All Applications")
 
+    # Show the active sort so the user always knows what order they're looking at
+    print(ui.colorize("dim", "  Sorted by: ") + ui.colorize("cyan", sort_label.split("(")[0].strip()))
+    print()
+
+    # Load, sort, and display
     all_apps = db.get_all_applications()
-    ui.print_applications_table(all_apps)
+    sorted_apps = db.sort_applications(all_apps, current_sort)
+    ui.print_applications_table(sorted_apps)
 
-    # After showing the table, let the user open one application in full detail
-    # or just press Enter to go back to the menu
-    print(ui.colorize("dim", "  Enter an ID to view full details, or press Enter to go back."))
-    choice = input("  > ").strip()
+    # Bottom prompt — sort, open detail, or go back
+    print(ui.colorize("dim", "  [s] Change sort    Enter an ID to view details    Enter to go back"))
+    print()
+    choice = input("  > ").strip().lower()
 
-    # If they just pressed Enter, go back
+    # [s] — change sort order
+    if choice == "s":
+        new_sort = ui.pick_sort_order(current_sort)
+        if new_sort is not None:
+            current_sort = new_sort
+        screen_view_all()  # reload the screen with the new sort applied
+        return
+
+    # Blank Enter — go back to menu
     if choice == "":
         return
 

@@ -436,3 +436,46 @@ def pick_job_type(allow_cancel=True):
             print(colorize("red", "  Please enter a number between 1 and " + str(other_number) + ", or 0 to cancel."))
         else:
             print(colorize("red", "  Please enter a number between 1 and " + str(other_number) + "."))
+
+
+# ── Sort Picker ───────────────────────────────────────────────────────────────
+
+# These are the sort options shown to the user.
+# Each entry is: (internal key used by sort_applications, label shown in the menu)
+SORT_OPTIONS = [
+    ("id",           "Date added        (default)"),
+    ("deadline",     "Deadline          (soonest first)"),
+    ("date_applied", "Date applied      (most recent first)"),
+    ("company",      "Company name      (A → Z)"),
+    ("status",       "Status            (pipeline order)"),
+]
+
+def pick_sort_order(current_sort="id"):
+    # Shows the sort options and returns the internal key for the chosen sort.
+    # Marks the currently active sort so the user knows what's selected.
+
+    print(colorize("bold", "  Sort by:"))
+    print()
+
+    for index, (key, label) in enumerate(SORT_OPTIONS, start=1):
+        marker = colorize("green", "  ← current") if key == current_sort else ""
+        print("  " + colorize("cyan", str(index) + ".") + "  " + label + marker)
+
+    print("  " + colorize("dim", "0.  Cancel (keep current sort)"))
+    print()
+
+    while True:
+        choice = input("  Enter a number (or 0 to cancel): ").strip().lower()
+
+        if choice == "":
+            continue
+
+        if choice == "0" or choice == "q":
+            return None
+
+        if choice.isdigit():
+            choice_number = int(choice)
+            if 1 <= choice_number <= len(SORT_OPTIONS):
+                return SORT_OPTIONS[choice_number - 1][0]  # return just the key
+
+        print(colorize("red", "  Please enter a number between 1 and " + str(len(SORT_OPTIONS)) + ", or 0 to cancel."))

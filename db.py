@@ -136,3 +136,42 @@ def filter_applications(status=None, company=None):
             results.append(app)
 
     return results
+
+
+# ── Sorting ───────────────────────────────────────────────────────────────────
+
+def sort_applications(applications, sort_by):
+    # Returns a sorted copy of the applications list.
+    # We never modify the original list — we sort a copy and return it.
+    # sort_by must be one of: "id", "deadline", "date_applied", "company", "status"
+
+    from models import STATUSES
+
+    if sort_by == "id":
+        # Default order — the order they were added
+        return sorted(applications, key=lambda app: app["id"])
+
+    elif sort_by == "deadline":
+        # Soonest deadline first. Applications with no deadline go to the bottom.
+        # We use "9999-99-99" as a fallback so blank deadlines sort last.
+        return sorted(applications, key=lambda app: app.get("deadline", "") or "9999-99-99")
+
+    elif sort_by == "date_applied":
+        # Most recently applied first. Applications with no date go to the bottom.
+        return sorted(applications, key=lambda app: app.get("date_applied", "") or "9999-99-99", reverse=True)
+
+    elif sort_by == "company":
+        # Alphabetical by company name, case-insensitive
+        return sorted(applications, key=lambda app: app.get("company", "").lower())
+
+    elif sort_by == "status":
+        # Pipeline order — Saved first, Withdrawn last.
+        # We look up each status's position in the STATUSES list.
+        # If somehow the status isn't in the list, it goes to the end.
+        def status_order(app):
+            status = app.get("status", "")
+            return STATUSES.index(status) if status in STATUSES else len(STATUSES)
+        return sorted(applications, key=status_order)
+
+    # If an unrecognised sort_by value was passed, return as-is
+    return applications
