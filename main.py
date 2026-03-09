@@ -485,11 +485,31 @@ def screen_filter_and_search():
     ui.wait_for_enter()
 
 
-# ── Screen: Analytics (Coming in Phase 5) ────────────────────────────────────
+# ── Screen: Analytics ────────────────────────────────────────────────────────
 
 def screen_analytics():
     ui.print_header("Analytics Dashboard")
-    print(ui.colorize("dim", "  📊 Analytics coming in Phase 5!\n"))
+
+    all_apps = db.get_all_applications()
+
+    # If there are no applications yet, nothing to analyse
+    if len(all_apps) == 0:
+        print(ui.colorize("dim", "  No applications tracked yet. Add some to see analytics.\n"))
+        ui.wait_for_enter()
+        return
+
+    # Gather all the data we need
+    status_counts    = db.get_status_counts(all_apps)
+    response_stats   = db.get_response_rate(all_apps)
+    monthly_activity = db.get_monthly_activity(all_apps)
+    insight          = db.get_quick_insight(all_apps, status_counts, response_stats, monthly_activity)
+
+    # Display each section
+    ui.print_status_breakdown(status_counts)
+    ui.print_response_rate(response_stats)
+    ui.print_monthly_activity(monthly_activity)
+    ui.print_quick_insight(insight)
+
     ui.wait_for_enter()
 
 

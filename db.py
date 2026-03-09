@@ -273,3 +273,147 @@ def get_needs_attention(applications):
             already_flagged.add(app_id)
 
     return flagged
+
+
+# ── Analytics ─────────────────────────────────────────────────────────────────
+
+def get_status_counts(applications):
+    # Counts how many applications are at each status.
+    # Returns a dictionary like {"Applied": 8, "Interview": 4, ...}
+    # Every status from the pipeline is included, even if the count is 0.
+    # That way the bar chart always shows the full pipeline, not just active ones.
+
+    from models import STATUSES
+
+    counts = {status: 0 for status in STATUSES}
+
+    for app in applications:
+        status = app.get("status", "")
+        if status in counts:
+            counts[status] += 1
+
+    return counts
+
+
+def get_response_rate(applications):
+    # Calculates key response metrics across all applications.
+    # Returns a dictionary of stats the dashboard can display.
+
+    total = len(applications)
+
+    if total == 0:
+        return {"total": 0, "heard_back": 0, "waiting": 0, "offers": 0, "response_rate": 0, "offer_rate": 0}
+
+    # "Heard back" means the application moved past Applied into any active or finished stage
+    heard_back_statuses = {"Online Assessment", "Phone Screen", "Interview", "Final Round", "Offer", "Rejected"}
+    heard_back = sum(1 for app in applications if app.get("status", "") in heard_back_statuses)
+
+    # Still waiting — Applied or Saved with no response yet
+    waiting = sum(1 for app in applications if app.get("status", "") in ("Saved", "Applied"))
+
+    # Offers
+    offers = sum(1 for app in applications if app.get("status", "") == "Offer")
+
+    # Rates as percentages, rounded to 1 decimal place
+    response_rate = round((heard_back / total) * 100, 1) if total > 0 else 0
+    offer_rate    = round((offers / total) * 100, 1) if total > 0 else 0
+
+    return {
+        "total":         total,
+        "heard_back":    heard_back,
+        "waiting":       waiting,
+        "offers":        offers,
+        "response_rate": response_rate,
+        "offer_rate":    offer_rate,
+    }
+
+
+def get_monthly_activity(applications):
+    # Groups applications by the month they were applied to.
+    # Returns a list of (month_label, count) tuples sorted oldest first.
+    # Applications with no date_applied are counted under "No date recorded".
+
+    from datetime import datetime
+    from collections import defaultdict
+
+    # defaultdict(int) is like a regular dict but automatically starts
+    # any new key at 0 — so we never get a KeyError when incrementing
+    monthly = defaultdict(int)
+
+    for app in applications:
+        date_applied = app.get("date_applied", "")
+
+        if date_applied:
+            try:
+                # Parse the date and extract just the year and month
+                dt = datetime.strptime(date_applied, "%Y-%m-%d")
+                # strftime turns a date object back into a formatted string
+                # "%B %Y" gives us "March 2026" style labels
+                label = dt.strftime("%B %Y")
+                monthly[label] += 1
+            except ValueError:
+                monthly["No date recorded"] += 1
+        else:
+            monthly["No date recorded"] += 1
+
+    if not monthly:
+        return []
+
+    # Sort by actual date — we need to parse back to sort correctly
+    # We separate "No date recorded" out first so it always goes last
+    dated = {}
+    no_date_count = monthly.pop("No date recorded", 0)
+
+    for label, count in monthly.items():
+        try:
+            dt = datetime.strptime(label, "%B %Y")
+            dated[dt] = (label, count)
+        except ValueError:
+            pass
+
+    # Sort by datetime object (oldest first), then add "No date recorded" at the end
+    sorted_months = [dated[dt] for dt in sorted(dated.keys())]
+
+    if no_date_count > 0:
+        sorted_months.append(("No date recorded", no_date_count))
+
+    return sorted_months
+
+
+def get_quick_insight(applications, status_counts, response_stats, monthly_activity):
+    # Generates a plain English sentence summarising the search.
+    # Looks at the data and picks the most relevant insight to surface.
+
+    total = response_stats["total"]
+
+    if total == 0:
+        return "No applications tracked yet. Add your first one to get started."
+
+    # Find the most common status
+    most_common_status = max(status_counts, key=lambda s: status_counts[s])
+    most_common_count  = status_counts[most_common_status]
+
+    # Find the busiest month if monthly data exists
+    busiest_month = ""
+    if monthly_activity:
+        busiest = max(monthly_activity, key=lambda x: x[1])
+        busiest_month = busiest[0]
+
+    # Build the insight based on what's most notable
+    if response_stats["offers"] > 0:
+        insight = (
+            "You have " + str(response_stats["offers"]) + " offer(s) — great work. "
+            "Your response rate is " + str(response_stats["response_rate"]) + "%."
+        )
+    elif response_stats["response_rate"] == 0:
+        insight = (
+            "No responses yet — keep applying. "
+            "Most of your applications are currently at: " + most_common_status + "."
+        )
+    else:
+        insight = (
+            "Your response rate is " + str(response_stats["response_rate"]) + "%. "
+            + ("Your busiest month was " + busiest_month + "." if busiest_month else "")
+        )
+
+    return insight

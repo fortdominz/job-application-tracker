@@ -535,3 +535,92 @@ def print_needs_attention(flagged):
         )
 
     print()
+
+
+# ── Analytics Display ─────────────────────────────────────────────────────────
+
+BAR_WIDTH = 20   # how many characters wide the full bar is
+
+def draw_bar(count, maximum):
+    # Turns a number into a colored bar string.
+    # The bar is always BAR_WIDTH characters wide total.
+    # filled + empty always = BAR_WIDTH.
+
+    if maximum == 0:
+        filled = 0
+    else:
+        filled = round((count / maximum) * BAR_WIDTH)
+
+    empty = BAR_WIDTH - filled
+
+    return colorize("blue", "█" * filled) + colorize("dim", "░" * empty)
+
+
+def print_status_breakdown(status_counts):
+    # Prints a horizontal bar chart of application counts by status.
+
+    print(colorize("bold", "  Status Breakdown"))
+    print()
+    print_divider()
+
+    maximum = max(status_counts.values()) if status_counts else 0
+
+    for status, count in status_counts.items():
+        bar        = draw_bar(count, maximum)
+        count_text = colorize("bold", str(count).rjust(3))
+        label      = colorize_status(status).ljust(28)  # extra padding for color codes
+
+        print("  " + label + "  " + bar + "  " + count_text)
+
+    print()
+
+
+def print_response_rate(stats):
+    # Prints the response rate stats as a clean labeled list.
+
+    print(colorize("bold", "  Response Rate"))
+    print()
+    print_divider()
+
+    rows = [
+        ("Total applications",  str(stats["total"])),
+        ("Heard back from",     str(stats["heard_back"]) + "  (" + str(stats["response_rate"]) + "%)"),
+        ("Still waiting",       str(stats["waiting"])),
+        ("Offers received",     str(stats["offers"]) + "  (" + str(stats["offer_rate"]) + "%)"),
+    ]
+
+    for label, value in rows:
+        print("  " + label.ljust(22) + colorize("bold", value))
+
+    print()
+
+
+def print_monthly_activity(monthly_activity):
+    # Prints a bar chart of applications submitted per month.
+
+    print(colorize("bold", "  Applications by Month"))
+    print()
+    print_divider()
+
+    if not monthly_activity:
+        print(colorize("dim", "  No date applied data recorded yet."))
+        print()
+        return
+
+    maximum = max(count for _, count in monthly_activity)
+
+    for label, count in monthly_activity:
+        bar        = draw_bar(count, maximum)
+        count_text = colorize("bold", str(count).rjust(3))
+        print("  " + label.ljust(18) + "  " + bar + "  " + count_text)
+
+    print()
+
+
+def print_quick_insight(insight):
+    # Prints the auto-generated insight line at the bottom of the dashboard.
+
+    print_divider()
+    print()
+    print("  " + colorize("yellow", "💡 ") + colorize("dim", insight))
+    print()
