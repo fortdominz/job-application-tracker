@@ -211,3 +211,65 @@ def search_applications(keyword):
                 break  # No need to check more fields once we find a match
 
     return matches
+
+
+# ── Needs Attention ───────────────────────────────────────────────────────────
+
+def get_needs_attention(applications):
+    # Looks through all applications and flags ones that need action.
+    # Returns a list of (application, reason) tuples so the screen
+    # can show exactly why each one was flagged.
+
+    from datetime import datetime, date
+
+    flagged = []
+
+    # We track which app IDs we've already flagged so we don't show
+    # the same application twice if it matches multiple rules
+    already_flagged = set()
+
+    for app in applications:
+        app_id    = app["id"]
+        status    = app.get("status", "")
+        deadline  = app.get("deadline", "")
+        last_updated = app.get("last_updated", "")
+
+        # Skip applications that are already finished — no action needed
+        if status in ("Offer", "Rejected", "Withdrawn"):
+            continue
+
+        # ── Rule 1: Deadline within 3 days ───────────────────────────────────
+        if deadline and app_id not in already_flagged:
+            try:
+                deadline_date = datetime.strptime(deadline, "%Y-%m-%d").date()
+                days_left = (deadline_date - date.today()).days
+                if 0 <= days_left <= 3:
+                    flagged.append((app, "Deadline in " + str(days_left) + " day(s)"))
+                    already_flagged.add(app_id)
+            except ValueError:
+                pass
+
+        # ── Rule 2: Stuck in Applied for 14+ days ────────────────────────────
+        if status == "Applied" and app_id not in already_flagged and last_updated:
+            try:
+                last_date = datetime.strptime(last_updated[:10], "%Y-%m-%d").date()
+                days_since = (date.today() - last_date).days
+                if days_since >= 14:
+                    flagged.append((app, "No movement in " + str(days_since) + " days"))
+                    already_flagged.add(app_id)
+            except ValueError:
+                pass
+
+        # ── Rule 3: In Interview or Final Round — needs active follow-up ──────
+        if status in ("Interview", "Final Round") and app_id not in already_flagged:
+            flagged.append((app, "Active stage — follow up needed"))
+            already_flagged.add(app_id)
+
+        # ── Rule 4: No deadline and no date applied — incomplete record ───────
+        no_deadline     = not deadline or deadline.strip() == ""
+        no_date_applied = not app.get("date_applied", "").strip()
+        if no_deadline and no_date_applied and app_id not in already_flagged:
+            flagged.append((app, "Incomplete — no deadline or date applied"))
+            already_flagged.add(app_id)
+
+    return flagged

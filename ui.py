@@ -479,3 +479,59 @@ def pick_sort_order(current_sort="id"):
                 return SORT_OPTIONS[choice_number - 1][0]  # return just the key
 
         print(colorize("red", "  Please enter a number between 1 and " + str(len(SORT_OPTIONS)) + ", or 0 to cancel."))
+
+
+# ── Needs Attention Display ───────────────────────────────────────────────────
+
+def print_needs_attention(flagged):
+    # flagged is a list of (application, reason) tuples from db.get_needs_attention()
+
+    if len(flagged) == 0:
+        print(colorize("green", "  ✓ Everything looks good — no applications need immediate attention."))
+        return
+
+    print(colorize("dim", "  " + str(len(flagged)) + " application(s) need your attention:"))
+    print()
+
+    # Column widths
+    id_width      = 4
+    company_width = 20
+    role_width    = 22
+    status_width  = 16
+
+    # Header
+    print(
+        colorize("bold", "  " + "ID".ljust(id_width)) +
+        colorize("bold", "  " + "Company".ljust(company_width)) +
+        colorize("bold", "  " + "Role".ljust(role_width)) +
+        colorize("bold", "  " + "Status".ljust(status_width)) +
+        colorize("bold", "  " + "Reason")
+    )
+    print_divider()
+
+    for app, reason in flagged:
+        app_id  = str(app["id"]).ljust(id_width)
+        company = app.get("company", "")[:company_width].ljust(company_width)
+        role    = app.get("role", "")[:role_width].ljust(role_width)
+        status_text = app.get("status", "")
+        status_padding = " " * (status_width - len(status_text))
+
+        # Color the reason based on urgency
+        if "day(s)" in reason and "Deadline" in reason:
+            reason_colored = colorize("red", reason)
+        elif "follow up" in reason:
+            reason_colored = colorize("yellow", reason)
+        elif "No movement" in reason:
+            reason_colored = colorize("yellow", reason)
+        else:
+            reason_colored = colorize("dim", reason)
+
+        print(
+            "  " + app_id +
+            "  " + company +
+            "  " + role +
+            "  " + colorize_status(status_text) + status_padding +
+            "  " + reason_colored
+        )
+
+    print()

@@ -401,6 +401,7 @@ def screen_filter_and_search():
         ("2", "Filter by company name"),
         ("3", "Deadlines in the next 7 days"),
         ("4", "Keyword search  (searches all fields)"),
+        ("5", "Needs attention  (urgent, stalled, incomplete)"),
         ("b", "Back to main menu"),
     ])
 
@@ -469,6 +470,14 @@ def screen_filter_and_search():
         else:
             print(ui.colorize("dim", "  " + str(len(results)) + " application(s) found.\n"))
             ui.print_applications_table(results)
+
+    elif choice == "5":
+        # Needs attention — surfaces applications that require action
+        all_apps = db.get_all_applications()
+        flagged  = db.get_needs_attention(all_apps)
+
+        ui.print_header("Needs Attention")
+        ui.print_needs_attention(flagged)
 
     elif choice == "b":
         return
