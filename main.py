@@ -73,6 +73,8 @@ def show_main_menu():
         ("4", "Delete an application"),
         ("5", "Filter & search"),
         ("6", "Analytics dashboard"),
+        ("7", "Export to CSV"),
+        ("h", "Help"),
         ("q", "Quit"),
     ])
 
@@ -513,6 +515,44 @@ def screen_analytics():
     ui.wait_for_enter()
 
 
+# ── Screen: Export to CSV ────────────────────────────────────────────────────
+
+def screen_export_csv():
+    ui.print_header("Export to CSV")
+
+    print(ui.colorize("dim", "  This will export all your applications to a CSV file."))
+    print(ui.colorize("dim", "  The file can be opened in Excel or Google Sheets."))
+    print()
+
+    # Let the user customise the filename or just press Enter to use the default
+    filename = input("  Filename (press Enter for 'applications_export.csv'): ").strip()
+
+    if filename == "":
+        filename = "applications_export.csv"
+
+    # Make sure the filename ends with .csv
+    if not filename.endswith(".csv"):
+        filename = filename + ".csv"
+
+    success, message = db.export_to_csv(filename)
+
+    print()
+    if success:
+        print(ui.colorize("green", "  ✓ " + message))
+    else:
+        print(ui.colorize("red", "  " + message))
+
+    ui.wait_for_enter()
+
+
+# ── Screen: Help ──────────────────────────────────────────────────────────────
+
+def screen_help():
+    ui.print_header("Help")
+    ui.print_help()
+    ui.wait_for_enter()
+
+
 # ── App Entry Point ───────────────────────────────────────────────────────────
 
 def run():
@@ -525,6 +565,8 @@ def run():
         "4": screen_delete_application,
         "5": screen_filter_and_search,
         "6": screen_analytics,
+        "7": screen_export_csv,
+        "h": screen_help,
     }
 
     # Keep looping until the user quits

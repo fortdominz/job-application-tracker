@@ -417,3 +417,46 @@ def get_quick_insight(applications, status_counts, response_stats, monthly_activ
         )
 
     return insight
+
+
+# ── CSV Export ────────────────────────────────────────────────────────────────
+
+def export_to_csv(filepath="applications_export.csv"):
+    # Exports all applications to a CSV file that can be opened in Excel or Google Sheets.
+    # Returns (success, message) so the caller can tell the user what happened.
+    #
+    # The csv module is part of Python's standard library — no pip install needed.
+    # It handles all the tricky parts of CSV formatting automatically, like wrapping
+    # fields that contain commas in quotes so they don't break the column structure.
+
+    import csv
+
+    applications = load_applications()
+
+    if not applications:
+        return False, "No applications to export."
+
+    # These are the columns that will appear in the spreadsheet, in order.
+    # We define them explicitly so the order is always consistent and readable.
+    fieldnames = [
+        "id", "company", "role", "job_type", "status",
+        "location", "source", "deadline", "date_applied",
+        "salary", "notes", "date_created", "last_updated",
+    ]
+
+    try:
+        # newline="" is required when writing CSV files on Windows —
+        # without it, Python adds extra blank rows between each record
+        with open(filepath, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+
+            # writeheader() writes the column names as the first row
+            writer.writeheader()
+
+            # writerows() writes every application as one row
+            writer.writerows(applications)
+
+        return True, "Exported " + str(len(applications)) + " application(s) to " + filepath
+
+    except Exception as e:
+        return False, "Export failed: " + str(e)

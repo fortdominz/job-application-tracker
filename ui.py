@@ -624,3 +624,60 @@ def print_quick_insight(insight):
     print()
     print("  " + colorize("yellow", "💡 ") + colorize("dim", insight))
     print()
+
+
+# ── Help Screen ───────────────────────────────────────────────────────────────
+
+def print_help():
+    # Prints a full reference of every feature in the app.
+    # Accessible from the main menu so the user can always find it.
+
+    print(colorize("bold", "  How to use the Job Application Tracker"))
+    print()
+
+    sections = [
+        ("View All Applications", [
+            ("Enter an ID",        "Open the full detail view for that application"),
+            ("[s]",                "Change the sort order — deadline, company, status, and more"),
+            ("Enter",              "Go back to the main menu"),
+        ]),
+        ("Add a New Application", [
+            ("Required fields",    "Company and role — the form won't continue without these"),
+            ("Job type",           "Pick from the standard list or choose Other to type your own"),
+            ("Dates",              "Must be in YYYY-MM-DD format — the form will re-ask if wrong"),
+            ("0 or q at a picker", "Cancels the entire add session, nothing is saved"),
+        ]),
+        ("Update an Application", [
+            ("Enter the ID",       "Type the ID of the application you want to edit"),
+            ("Blank Enter",        "Keeps the current value for any field — only change what you need"),
+            ("Required fields",    "Leaving company or role blank keeps the original value"),
+        ]),
+        ("Delete an Application", [
+            ("Confirmation",       "Type 'yes' to confirm — anything else cancels the delete"),
+        ]),
+        ("Filter & Search", [
+            ("1 — Status filter",  "Show all applications at a specific pipeline stage"),
+            ("2 — Company filter", "Show all applications matching a company name"),
+            ("3 — Deadlines",      "Show applications with deadlines in the next 7 days"),
+            ("4 — Keyword search", "Search all fields — company, notes, source, status, and more"),
+            ("5 — Needs attention","Surfaces urgent, stalled, active, and incomplete applications"),
+        ]),
+        ("Analytics Dashboard", [
+            ("Status breakdown",   "Bar chart showing application counts at each pipeline stage"),
+            ("Response rate",      "How many employers have responded and your offer rate"),
+            ("Monthly activity",   "Application volume grouped by month"),
+            ("Quick insight",      "One auto-generated sentence summarising your search"),
+        ]),
+        ("Export & Help", [
+            ("7 — Export CSV",     "Export all applications to a .csv file for Excel or Google Sheets"),
+            ("h — Help",           "Show this help screen from anywhere in the app"),
+            ("q — Quit",           "Exit the app"),
+        ]),
+    ]
+
+    for section_title, items in sections:
+        print(colorize("cyan", "  " + section_title))
+        print_divider()
+        for key, description in items:
+            print("  " + colorize("bold", key.ljust(22)) + description)
+        print()
